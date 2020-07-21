@@ -114,18 +114,25 @@ contract FlightSuretyData {
         _addAirline(airline, name);
     }
 
-    function _addAirline (address airlineAddress, string name) private
-    {
-        Airline memory airline = Airline(name, true, false, 0, 0);
-        airlines[airlineAddress] = airline;
-        airlineCount++;
-    }
-
     function registerAirline(address hasFundAirline, address applicantAirline)
             external requireIsOperational requireAppContractOwner
                      requireisRegisteredAirline(hasFundAirline) requireFundedAirline(hasFundAirline)
     {
         _registerAirline(applicantAirline);
+    }
+
+    function getAirline(address addressAirline) external view requireIsOperational requireAppContractOwner
+                                                returns(string name, bool isRegistered, uint hasFund, uint voteCount)
+    {
+        Airline memory airline = airlines[addressAirline];
+        return(airline.name, airline.isRegistered, airline.hasFund, airline.voteCount);
+    }
+
+    function _addAirline (address airlineAddress, string name) private
+    {
+        Airline memory airline = Airline(name, true, false, 0, 0);
+        airlines[airlineAddress] = airline;
+        airlineCount++;
     }
 
     function _registerAirline(address airline) private
@@ -177,13 +184,6 @@ contract FlightSuretyData {
     function getFlightKey (address airline, string memory flight, uint256 timestamp) private pure returns(bytes32)
     {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
-    }
-
-    function getAirline(address addressAirline) external view requireIsOperational requireAppContractOwner
-                                                returns(string name, bool isRegistered, uint hasFund, uint voteCount)
-    {
-        Airline memory airline = airlines[addressAirline];
-        return(airline.name, airline.isRegistered, airline.hasFund, airline.voteCount);
     }
 
     function airlineisAdded(address airline) external view requireIsOperational requireAppContractOwner returns (bool)

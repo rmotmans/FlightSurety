@@ -90,30 +90,10 @@ contract FlightSuretyApp {
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
 
-    /**
-     * @dev Add an airline to the registration queue
-     *
-     */
     function addAirline(address newAirline, string name)
                 external requireIsOperational
     {
         flightSuretyData.addAirline(msg.sender, newAirline, name);
-    }
-
-    /**
-     * @dev vote
-     */
-    function vote(address newAirline) external requireIsOperational {
-        flightSuretyData.vote(msg.sender, newAirline);
-        uint256 airlineCount = flightSuretyData.getAirlineCount();
-        if (airlineCount > 4) {
-            uint256 voteCount = flightSuretyData.getAirlineVoteCount(newAirline);
-            if (voteCount >= (airlineCount/2)) {
-                flightSuretyData.registerAirline(msg.sender, newAirline);
-            }
-        } else {
-            flightSuretyData.registerAirline(msg.sender, newAirline);
-        }
     }
 
     function getAirline(address airlineAddress)
@@ -128,9 +108,19 @@ contract FlightSuretyApp {
         return(flightSuretyData.getAirlineCount());
     }
 
-    /**
-     * @dev Add the funds to the FlightSuretyData contract.
-     */
+    function vote(address newAirline) external requireIsOperational {
+        flightSuretyData.vote(msg.sender, newAirline);
+        uint256 airlineCount = flightSuretyData.getAirlineCount();
+        if (airlineCount > 4) {
+            uint256 voteCount = flightSuretyData.getAirlineVoteCount(newAirline);
+            if (voteCount >= (airlineCount/2)) {
+                flightSuretyData.registerAirline(msg.sender, newAirline);
+            }
+        } else {
+            flightSuretyData.registerAirline(msg.sender, newAirline);
+        }
+    }
+
     function fund() external payable requireIsOperational
     {
         bool airlineisRegistered = flightSuretyData.airlineisRegistered(msg.sender);
@@ -140,10 +130,6 @@ contract FlightSuretyApp {
         address(flightSuretyData).transfer(msg.value);
     }
 
-    /**
-     * @dev Called after oracle has updated flight status
-     *
-     */
     function processFlightStatus (address airline, string flight, uint256 timestamp, uint8 statusCode) public
     {
         if (statusCode == STATUS_CODE_LATE_AIRLINE) {
@@ -155,7 +141,6 @@ contract FlightSuretyApp {
     function fetchFlightStatus (address airline, string flight, uint256 timestamp) external
     {
         uint8 index = getRandomIndex(msg.sender);
-
         // Generate a unique key for storing the request
         bytes32 key = keccak256(abi.encodePacked(index, airline, flight, timestamp));
         oracleResponses[key] = ResponseInfo({
@@ -166,10 +151,6 @@ contract FlightSuretyApp {
         emit OracleRequest(index, airline, flight, timestamp);
     }
 
-    /**
-     * @dev Buy insurance for a flight
-     *
-     */
     function buy(address airline, string flight, uint256 timestamp)
               external payable requireIsOperational
     {
@@ -178,22 +159,15 @@ contract FlightSuretyApp {
         flightSuretyData.buy.value(msg.value)(airline, flight, timestamp, msg.sender);
     }
 
-    /**
-     *  @dev Transfers eligible payout funds to insuree
-     *
-    */
-    function withdraw() external payable requireIsOperational
-    {
-        flightSuretyData.pay(msg.sender);
-    }
-
-    /**
-     * @dev Get insurees credit balance.
-     */
     function getInsureeBalance(address insuree)
                   external view requireIsOperational returns(uint256)
     {
         return flightSuretyData.getInsureeBalance(insuree);
+    }
+
+    function withdraw() external payable requireIsOperational
+    {
+        flightSuretyData.pay(msg.sender);
     }
 
 // region ORACLE MANAGEMENT
