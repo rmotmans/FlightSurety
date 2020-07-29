@@ -4,10 +4,7 @@ const truffleAssert = require('truffle-assertions');
 
 contract('Flight Surety Tests', async (accounts) => {
 
-  const airlineInitialFund = web3.utils.toWei("10", "ether");
-  const oneEther = web3.utils.toWei("1", "ether");
   const timestamp = Math.floor(Date.now() / 1000);
-  const lateFlight = "FLY-1"
 
   var config;
   before('setup contract', async () => {
@@ -19,35 +16,44 @@ contract('Flight Surety Tests', async (accounts) => {
   /* Operations and Settings                                                              */
   /****************************************************************************************/
 
-  it(`data contract has correct initial operational status`, async function () {
+  it(`(multiparty) has correct tial isOperational() value`, async function () {
+
+    // Get operating status
     let status = await config.flightSuretyData.isOperational.call();
-    assert.equal(status, true, "Wrong initial operating status value");
+    assert.equal(status, true, "Incorrect initial operating status value");
+
   });
 
-  it(`data contract can block access to setOperatingStatus() for non-contractOwner account`, async function () {
-      let access = false;
+  it(`(multiparty) can block access to setOperatingStatus() for non-Contract Owner account`, async function () {
+
+      // Ensure that access is denied for non-Contract Owner account
+      let accessDenied = false;
       try {
           await config.flightSuretyData.setOperatingStatus(false, { from: config.firstAirline });
       }
       catch(e) {
-          access = true;
+          accessDenied = true;
       }
-      assert.equal(access, true, "Access is not restricted to contractOwner");
+      assert.equal(accessDenied, true, "Access is not restricted to contractOwner");
   });
 
-  it(`data contract can allow access to setOperatingStatus() for contractOwner`, async function () {
-      let access = false;
+  it(`(multiparty) can allow access to setOperatingStatus() for Contract Owner account`, async function () {
+
+      // Ensure that access is allowed for Contract Owner account
+      let accessDenied = false;
       try {
           await config.flightSuretyData.setOperatingStatus(false);
       }
       catch(e) {
-          access = true;
+          accessDenied = true;
       }
-      assert.equal(access, false, "Access is not restricted to contractOwner");
+      assert.equal(accessDenied, false, "Access not restricted to Contract Owner");
   });
 
-  it(`dataContract can block access to functions by setting operational status to false`, async function () {
+  it(`(multiparty) can block access to functions using requireIsOperational when operating status is false`, async function () {
+
     await config.flightSuretyData.setOperatingStatus(false);
+
     await truffleAssert.reverts(config.flightSuretyData.authorizeCaller(config.flightSuretyApp.address));
 
     await config.flightSuretyData.setOperatingStatus(true);
@@ -55,25 +61,26 @@ contract('Flight Surety Tests', async (accounts) => {
 
   it('dataContract can authorize appContract to call dataContract functions', async () => {
 
-    let isAuthorized = false;
+    let isAuthorized = true;
+
     try {
         await config.flightSuretyData.authorizeCaller(config.flightSuretyApp.address);
-        isAuthorized = true;
     }
     catch(e) {
-        console.log(e);
+        isAuthorized = false;
     }
 
     assert.equal(isAuthorized, true, "dataContract doesn't authorize appContract");
   });
 
   it('firstAirline can add funds to firstAirline', async () => {
-    await truffleAssert.passes(config.flightSuretyApp.fund({from: config.firstAirline, value: airlineInitialFund}));
+    let funding = web3.utils.toWei("10", "ether");
+    await truffleAssert.passes(config.flightSuretyApp.fund({from: config.firstAirline, value: funding}));
     let airline = await config.flightSuretyApp.getAirline.call(config.firstAirline);
 
     assert.equal(airline[0], 'First Airline', 'Wrong name of firstAirline');
     assert.equal(airline[1], true, 'firstAirline is not registered');
-    assert.equal(airline[2], airlineInitialFund, "firstAirline should have funds");
+    assert.equal(airline[2], funding, "firstAirline should have funds");
   });
 
   it('firstAirline can add secondAirline', async () => {
@@ -103,12 +110,12 @@ contract('Flight Surety Tests', async (accounts) => {
   });
 
   it('secondAirline can fund to secondAirline', async () => {
-    await config.flightSuretyApp.fund({from: config.secondAirline, value: airlineInitialFund});
+    await config.flightSuretyApp.fund({from: config.secondAirline, value: intialFund});
     let airline = await config.flightSuretyApp.getAirline.call(config.secondAirline);
 
     assert.equal(airline[0], 'Second Airline', 'Wrong name of second airline');
     assert.equal(airline[1], true, 'secondAirline is not registered');
-    assert.equal(airline[2], airlineInitialFund, "secondAirline should have funds");
+    assert.equal(airline[2], initialFund, "secondAirline should have funds");
   });
 
   it('secondAirline can add thirdAirline', async () => {
@@ -130,12 +137,13 @@ contract('Flight Surety Tests', async (accounts) => {
   });
 
   it('thirdAirline can fund to thirdAirline', async () => {
-    await config.flightSuretyApp.fund({from: config.thirdAirline, value: airlineInitialFund});
+    let funding = web3.utils.toWei("12", "ether");
+    await config.flightSuretyApp.fund({from: config.thirdAirline, value: funding});
     let airline = await config.flightSuretyApp.getAirline.call(config.thirdAirline);
 
     assert.equal(airline[0], 'Third Airline', 'Wrong name of third airline');
     assert.equal(airline[1], true, 'thirdAirline is not registered');
-    assert.equal(airline[2], airlineInitialFund, "thirdAirline should have funds");
+    assert.equal(airline[2], funding, "thirdAirline should have funds");
   });
 
   it('thirdAirline can add fourthAirline', async () => {
@@ -157,12 +165,13 @@ contract('Flight Surety Tests', async (accounts) => {
   });
 
   it('fourthAirline can fund to fourthAirline', async () => {
-    await config.flightSuretyApp.fund({from: config.fourthAirline, value: airlineInitialFund});
+    let funding = web3.utils.toWei("13", "ether")
+    await config.flightSuretyApp.fund({from: config.fourthAirline, value: funding});
     let airline = await config.flightSuretyApp.getAirline.call(config.fourthAirline);
 
     assert.equal(airline[0], 'Fourth Airline', 'Wrong name of fourth airline');
     assert.equal(airline[1], true, 'fourthAirline is not registered');
-    assert.equal(airline[2], airlineInitialFund, "fourthAirline should have funds");
+    assert.equal(airline[2], funding, "fourthAirline should have funds");
   });
 
   it('fourthAirline can add fifthAirline', async () => {
@@ -178,9 +187,7 @@ contract('Flight Surety Tests', async (accounts) => {
     await truffleAssert.passes(config.flightSuretyApp.vote(config.fifthAirline, {from: config.fourthAirline}));
     let airline = await config.flightSuretyApp.getAirline.call(config.fifthAirline);
 
-    assert.equal(airline[1], false, 'fifthAirline should not be registered by single vote');
-    assert.equal(airline[2], 0, "fifthAirline should not have fund");
-    assert.equal(airline[3], 1, "fifthAirline should have 1 vote");
+    assert.equal(airline[1], false, 'fifthAirline should not be registered');
   });
 
   it('2 votes in the original 4 Airlines can get fifthAirline registered', async () => {
@@ -192,31 +199,11 @@ contract('Flight Surety Tests', async (accounts) => {
     assert.equal(airline[3], 2, "fifthAirline should have 2 vote");
   });
 
-  it('fifthAirline can fund to fifthAirline', async () => {
-    await truffleAssert.passes(config.flightSuretyApp.fund({from: config.fifthAirline, value: airlineInitialFund}));
-    let airline = await config.flightSuretyApp.getAirline.call(config.fifthAirline);
+  it("user can buy flight insuree", async () => {
+    await truffleAssert.passes(config.flightSuretyApp.buy(config.fifthAirline, lateFlight,
+       timestamp, {from: config.passengerOne, value: web3.utils.toWei("1", "ether")}),
+        'The but method fails');
 
-    assert.equal(airline[0], 'Fifth Airline', 'Wrong name of fifthAirline');
-    assert.equal(airline[1], true, 'fifthAirline is not registered');
-    assert.equal(airline[2], airlineInitialFund, "fifthAirline should have funds");
-  });
-
-  it('fifthAirline can add sixthAirline', async () => {
-    await config.flightSuretyApp.addAirline(config.sixthAirline, 'Sixth Airline', {from: config.fifthAirline});
-    let airline = await config.flightSuretyApp.getAirline.call(config.sixthAirline);
-
-    assert.equal(airline[0], 'Sixth Airline', 'Wrong name of sixthAirline');
-    assert.equal(airline[1], false, 'sixthAirline should not be registered');
-    assert.equal(airline[2], 0, "fifthAirline should not have funds");
-  });
-
-  it("passenger can buy flight insuree", async () => {
-    let balanceBefore = await web3.eth.getBalance(config.passengerOne);
-    await truffleAssert.passes(config.flightSuretyApp.buy(config.fifthAirline, lateFlight, timestamp, {from: config.passengerOne, value: oneEther}));
-
-    let balanceAfter = await web3.eth.getBalance(config.passengerOne);
-    let diff = balanceBefore - balanceAfter;
-    assert.ok(diff > oneEther, "Balance Wrong!");
   });
 
   it("passenger can withdraw flight insuree", async () => {
@@ -226,7 +213,7 @@ contract('Flight Surety Tests', async (accounts) => {
 
     let balanceAfter = await web3.eth.getBalance(config.passengerOne);
     let diff = balanceAfter - balanceBefore;
-    let compense = oneEther * 1.5;
+    let compense = web3.utils.toWei("1", "ether") * 1.5;
     assert.ok(diff > compense, "Balance Wrong!");
   });
 
